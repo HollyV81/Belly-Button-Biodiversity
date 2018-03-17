@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Belly Buttom BioDiversity</title>
+
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/numeric/1.2.6/numeric.min.js"></script>
+  
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+
+    <!-- jQuery library -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+
+    <!-- Latest compiled JavaScript -->
+
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+
+    <style>
+        body {
+            background-color: grey;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container text-center">
+        <div class="jumbotron">
+            <h1 style="font-family:Verdana, Geneva, sans-serif;">Belly Button Biodiversity</h1>
+        </div>
+        <div class="row">
+            <div class="col-md-4">
+                <div style="background-color:cornsilk;">
+                    <label for="" style="font-family: fantasy;">Select Sample ID</label>
+                    <br>
+                    <select id="nameSelection" onchange="optionChanged(this)">
+                    </select>
+                    <div style="height:20px"></div>
+                </div>
+                <div class="col-md-12" style=" margin-top: 10px; background-color:cornsilk;">
+                    <h4 style="font-family: fantasy;">Meta DATA</h4>
+                    <hr>
+                    <p id="age" style="font-family: fantasy;"></p>
+                    <p id="BBTYPE" style="font-family: fantasy;"></p>
+                    <p id="ethinic" style="font-family: fantasy;"></p>
+                    <p id="gender" style="font-family: fantasy;"></p>
+                    <p id="location" style="font-family: fantasy;"></p>
+                    <p id="sampleid" style="font-family: fantasy;"></p>
+                    <div style="height:20px"></div>
+                </div>
+            </div>
+            <div class="col-md-6" style="background-color:cornsilk;margin-left:50px;" > 
+                <h3 style="font-family: fantasy;">Top 10 Bacterias Found by OTU ID</h3>
+                <hr>
+                <div id="pieChart"></div>
+                <div style="height:20px"></div>
+            
+            </div>
+        </div>
+
+        <hr>
+
+        <div class="rows">
+
+        <div class="col-md-5" style="margin-top:58px; padding-right:75px;"  >
+                <div id="bubble"></div>
+
+            </div>
+
+
+        </div>
+    </div>
+
+    <div style="height:30px;"></div>
+    <script src="https://fastcdn.org/D3.js/3.5.6/d3.min.js"></script>
+    <script>
+        // create drop down
+        d3.json("/names", function (nameList) {
+            for (name of nameList) {
+                var option = document.createElement("option");
+                option.text = name;
+                option.value = name;
+                var select = document.getElementById("nameSelection");
+                select.appendChild(option);
+            }
+        });
+        // on change meta data  will be generated
+        function optionChanged(data) {
+            var x = data.value
+            d3.json("/metadata/sample", function (metaSampleData) {
+                metaSampleData.forEach(element => {
+                    var sampleid = element.SAMPLEID;
+                    if (sampleid === x) {
+
+                        document.getElementById("age").innerHTML = "AGE:" + " " + element.AGE
+                        document.getElementById("BBTYPE").innerHTML = "BBTYPE:" + " " + element.BBTYPE
+                        document.getElementById("ethinic").innerHTML = "ETHNICITY:" + " " + element.ETHNICITY
+                        document.getElementById("gender").innerHTML = "GENDER:" + " " + element.GENDER
+                        document.getElementById("location").innerHTML = "LOCATION:" + " " + element.LOCATION
+                        document.getElementById("sampleid").innerHTML = "SAMPLEID:" + " " + element.SAMPLEID
+                    }
+                });
+                
+        // generate pie plot and bubble chart
+        d3.json("/sample/plot/pie", function (sampleFORCHART) {
+            otu_id_LIST = []
+            taxonomic_LIST = []
+            total_LIST = []
+
+            sampleFORCHART.forEach(function (entry) {
+                otu_id_LIST.push(entry.otu_id)
+                taxonomic_LIST.push(entry.lowest_taxonomic_unit_found)
+                total_LIST.push(entry.Total)
+            })
+
+
+            var dataPIE = [{
+                values: total_LIST,
+                labels: otu_id_LIST,
+                type: 'pie'
+            }];
+
+            var layoutPIE = {
+                height: 300,
+                width: 475
+            };
+
+            Plotly.newPlot("pieChart", dataPIE, layoutPIE);
+
+
+            // bubble plot
+            var trace1 = {
+                x: otu_id_LIST,
+                y: total_LIST,
+                mode: 'markers',
+                marker: {
+                    color: ['rgb(0, 164, 0)', 'rgb(255, 144, 14)', 'rgb(44, 160, 20)',
+                        'rgb(0, 0, 54)', 'rgb(0, 76, 54)', 'rgb(100, 76, 54)', 'rgb(200, 76, 0)',
+                        'rgb(100, 100, 300)', 'rgb(79, 0, 54)', 'rgb(9, 588, 54)'
+                    ],
+
+                    labels: taxonomic_LIST,
+                    opacity: [1, 0.8, 0.6, 0.4],
+                    size: [100, 75, 60, 50, 40, 30, 20, 15, 5]
+                }
+            };
+
+            var data = [trace1];
+
+            var layout = {
+                title: 'Top 10 Bacterias Found by OTU ID',
+                showlegend: false,
+                xaxis: {
+                    range: [400, 3000],
+                    title: "OTU Description ID"
+                },
+                yaxis: {
+                    range: [0, 20500],
+                    title: "Total Bacterica Found"
+                },
+                height: 350,
+                width: 450
+            };
+            Plotly.newPlot('bubble', data, layout);
+        });
+    </script>
+</body>
+
+</html>
